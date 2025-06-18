@@ -10,14 +10,11 @@ The script **`pinn_sbm.py`** reproduces **Case 1** of the SBM study by Dbouk *et
 
 | File / folder       | Purpose                                            |
 |---------------------|----------------------------------------------------|
-| `src/pinn_sbm.py` | Main training script for Case 1                    |
+| `pinn_sbm.py`       | Main training script for Case 1                    |
 | `data_SBM.csv`      | Experimental LDV/NMR data (`y`, `U_x`, `p`, `ϕ`)   |
 | `README.md`         | Project overview (this file)                       |
 
 ---
-
-
-# Citation
 
 @article{Dbouk2013SBM,
   author  = {Dbouk, Talib and Lemaire, Elisabeth and Lobry, Laurent and Moukalled, Fady},
