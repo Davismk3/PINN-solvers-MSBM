@@ -11,7 +11,7 @@ The script **`pinn_sbm.py`** reproduces **Case 1** of the SBM study by Dbouk *et
 | File / folder       | Purpose                                            |
 |---------------------|----------------------------------------------------|
 | `pinn_sbm.py`       | Main training script for Case 1                    |
-| `data_SBM.csv`      | Experimental LDV/NMR data (`y`, `U_x`, `p`, `ϕ`)   |
+| `data_SBM.csv`      | Experimental data (`y`, `U_x`, `p`, `ϕ`)           |
 | `README.md`         | Project overview (this file)                       |
 
 ---
