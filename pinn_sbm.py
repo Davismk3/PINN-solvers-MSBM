@@ -42,15 +42,20 @@ much narrower than the data of the center flow for the same parameters.
 """
 
 # Controls & Hyperparameters --------------------------------------------------
-model_path = Path("/Users/michaeldavis/Desktop/Python/SBM/Final/Saved_Models")
-model_name = "Ux_trial"
-model_save_path = model_path / model_name
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
-path_to_data = "/Users/michaeldavis/Desktop/Python/SBM/data_SBM.csv"
-df = pd.read_csv(path_to_data)
 torch.manual_seed(0)
 np.random.seed(0)
+
+saved_models = Path("/Users/michaeldavis/Desktop/Python/SBM/Final/saved_models")  # saved models directory path
+data_files = Path("/Users/michaeldavis/Desktop/Python/SBM")  # data directory path
+Ux_saved = "Ux_trial_bulk_03"  # Ux model name to use and/or create
+ϕ_saved = "phi_trial_bulk_03"  # Ux model name to create
+data_file = "data_SBM.csv"  # data file, must be csv
+Ux_saved_path = saved_models / Ux_saved
+ϕ_saved_path = saved_models / ϕ_saved
+data_path = data_files / data_file
+df = pd.read_csv(data_path)
 
 # PINN type
 training_ϕ = True  # Ux and ϕ are trained separately 
@@ -61,12 +66,14 @@ EPOCHS_ADAM = 1000  # iterations for faster optimizer
 EPOCHS_LBFGS = 100  # iterations for better optimizer
 LEARNING_RATE_ADAM = 1e-3
 LEARNING_RATE_LBFGS = 1e-4
-N_PTS = 1500 # collocation points
-BUFFER = 1e-5 # torch.finfo(torch.float32).eps  # for loss function
+N_PTS = 500 # collocation points
+BUFFER = 1e-3 # torch.finfo(torch.float32).eps  # for loss function
+AVG_WEIGHT = 5  # weight coefficient for enforcing mean ϕ
 
 # parameters
 p = df['p'].values.mean()  # steady state pressure | (Pa) 
 Uxmax = df['U_0'].values.max()  # max steady state velocity | (m/s)
+ϕaverage = df['c'].values.mean() # average ϕ | (dimensionless)
 H = 0.0018  # channel height | (m)
 ρ = 1190  # solvent density | (Kg/m³)
 η = 0.48  # dynamic viscosity | (Pa·s)
@@ -77,7 +84,6 @@ Kn = 0.75  # fitting parameter | (dimensionless)
 α = 4.0  # fitting parameter | α ∈ [2, 5] | (dimensionless)
 a = 5e-5 # particle radius | (m)
 ϕmax = 0.68  # max ϕ | (dimensionless)
-ϕaverage = 0.2721 # average ϕ | (dimensionless)
 ε = a / ((H / 2)**2)  # non-local shear-rate coefficient | (1/m)
 
 # data tensors | y and Ux are made dimensionless
@@ -93,7 +99,6 @@ def y_random(n_pts):  # normalized [-1, 1]
 Ux_trial = lambda y: PINN_Ux(torch.cat([y], dim=1))[:, 0:1] * (1 + y) * (1 - y) # torch.Size([y, 1]) | normalized 
 ϕ_trial = lambda y: ϕmax * torch.sigmoid(PINN_ϕ(y)[:,0:1]) # torch.Size([y, 1])
 
-
 # PINN ------------------------------------------------------------------------
 class FourierFeatures(nn.Module):
     def __init__(self, in_features, mapping_size=64, scale=1):
@@ -105,10 +110,10 @@ class FourierFeatures(nn.Module):
         return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
 
 class NN(nn.Module):
-    def __init__(self, neurons):
+    def __init__(self, neurons, trig_scale):
         super().__init__()
         self.net = nn.Sequential(
-            FourierFeatures(1, mapping_size=neurons, scale=10),
+            FourierFeatures(1, mapping_size=neurons, scale=trig_scale),
             nn.Linear(2 * neurons, neurons),
             nn.Tanh(),
             nn.Linear(neurons, neurons),
@@ -122,14 +127,14 @@ class NN(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-PINN_Ux = NN(neurons=NEURONS)
-PINN_ϕ = NN(neurons=NEURONS)
+PINN_Ux = NN(neurons=NEURONS, trig_scale=0.1)
+PINN_ϕ = NN(neurons=NEURONS, trig_scale=5)
 
 # load saved Ux model
 if training_ϕ:
-    for p in PINN_Ux.parameters():
-        p.requires_grad_(False)
-    PINN_Ux.load_state_dict(torch.load(f=model_save_path))
+    for parameter in PINN_Ux.parameters():
+        parameter.requires_grad_(False)
+    PINN_Ux.load_state_dict(torch.load(f=Ux_saved_path))
     PINN_Ux.eval()
 
 # Loss ------------------------------------------------------------------------
@@ -233,7 +238,7 @@ def equation_loss(y):
         torch.cat([zero + dΣyystar_dystar + zero], dim=1),
         torch.cat([zero + zero + zero], dim=1)
         ], dim=1)  # torch.Size([y, 3, 1]), a vector for each y
-
+    
     # return ∇⋅J = 0 and ∇⋅Σ = 0
     print("J loss: ", torch.mean(Jstar_divergence**2))
     print("Σ loss: ", torch.mean(Σstar_divergence**2))
@@ -247,19 +252,21 @@ def average_concentration_loss(y):
 
 def ϕ_loss(y):
     return (equation_loss(y) + 
-            average_concentration_loss(y) / (average_concentration_loss(y).detach() + BUFFER))
+            AVG_WEIGHT * average_concentration_loss(y) / (average_concentration_loss(y).detach() + BUFFER))
 
 # Visualize -------------------------------------------------------------------
 def visualize(true_values, predicted_values, label):
     with torch.no_grad():
-        y_plot = ((y_data + 1.0) / 2.0 * H).squeeze().cpu().numpy()
+        y_plot_data = ((y_data + 1.0) / 2.0 * H).squeeze().cpu().numpy()
         data_plot = true_values.squeeze().cpu().numpy()
-        pinn_plot = predicted_values(y_data).squeeze().cpu().numpy()
+        y_pinn = torch.linspace(-1.0, 1.0, N_PTS, device=device).unsqueeze(1)
+        y_plot_pinn = ((y_pinn + 1.0) / 2.0 * H).squeeze().cpu().numpy()
+        pinn_plot = predicted_values(y_pinn).squeeze().cpu().numpy()
 
     # create a figure + axes instead of plt.plot()
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.plot(y_plot, data_plot, 'ko', label='Data', markersize=3)
-    ax.plot(y_plot, pinn_plot, 'b-', label='PINN')
+    ax.plot(y_plot_data, data_plot, 'ko', label='Data', markersize=3)
+    ax.plot(y_plot_pinn, pinn_plot, 'b-', label='PINN')
     ax.set_ylabel(label)
     ax.set_xlabel('y')
     ax.legend()
@@ -330,29 +337,13 @@ def LBFGS_Particle(learning_rate, epochs):
 
 # Training Loop ---------------------------------------------------------------
 if not training_ϕ:
-    Adam_Velocity(epochs=10000, learning_rate=1e-3)
-    Adam_Velocity(epochs=10000, learning_rate=1e-4)
-    Adam_Velocity(epochs=10000, learning_rate=1e-5)
-    Adam_Velocity(epochs=10000, learning_rate=1e-6)
-    Adam_Velocity(epochs=10000, learning_rate=1e-7)
+    Adam_Velocity(epochs=EPOCHS_ADAM, learning_rate=LEARNING_RATE_ADAM)
 
-    model_path = Path("/Users/michaeldavis/Desktop/Python/SBM/Final/Saved_Models")
-    model_name = "Ux_trial"
-
-    model_path.mkdir(parents=True, exist_ok=True)
-    model_save_path = model_path / model_name
-    torch.save(obj=PINN_Ux.state_dict(), f=model_save_path)
+    saved_models.mkdir(parents=True, exist_ok=True)
+    torch.save(obj=PINN_Ux.state_dict(), f=Ux_saved_path)
 
 elif training_ϕ:
-    Adam_Particle(epochs=500, learning_rate=1e-3)
-    Adam_Particle(epochs=500, learning_rate=1e-4)
-    Adam_Particle(epochs=500, learning_rate=1e-5)
-    Adam_Particle(epochs=500, learning_rate=1e-6)
+    Adam_Particle(epochs=EPOCHS_ADAM, learning_rate=LEARNING_RATE_ADAM)
 
-
-    model_path = Path("/Users/michaeldavis/Desktop/Python/SBM/Final/Saved_Models")
-    model_name = "phi_trial"
-
-    model_path.mkdir(parents=True, exist_ok=True)
-    model_save_path = model_path / model_name
-    torch.save(obj=PINN_Ux.state_dict(), f=model_save_path)
+    saved_models.mkdir(parents=True, exist_ok=True)
+    torch.save(obj=PINN_ϕ.state_dict(), f=ϕ_saved_path)
