@@ -6,9 +6,9 @@ The script **`pinn_sbm.py`** is currently set to reproduce **Case 1** of the SBM
 
 ## Results
 
-![PINN Solution](assets/3.png)
-![PINN Solution](assets/4.png)
-![PINN Solution](assets/5.png)
+![PINN Solution](assets/bulk_3.png)
+![PINN Solution](assets/bulk_4.png)
+![PINN Solution](assets/bulk_5.png)
 
 ## Reference
 @article{Dbouk2013SBM,
