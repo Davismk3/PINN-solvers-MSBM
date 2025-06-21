@@ -2,7 +2,7 @@
 
 This repository contains PyTorch implementations of physics-informed neural networks (PINNs), which learn the known velocity profile of fluid through a small channel, and use this along with enforced physical laws to approximate the unknown particle-volume-fraction profile of particle suspensions. 
 
-The script **`pinn_sbm.py`** is currently set to reproduce **Case 1** of the SBM study by Dbouk *et al.* (2013).
+Each script reproduces an exact or modified **Case 1** of the SBM study by Dbouk *et al.* (2013).
 
 ## Results
 
