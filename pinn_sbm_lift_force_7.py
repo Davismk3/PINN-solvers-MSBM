@@ -17,6 +17,14 @@ import pandas as pd
 #   for both determining and initializing the loss weights.
 # - The MSEs in the loss function are normalized differently. MSEs that start off small and only plateau from there 
 #   will hinder convergence if weighted too much.
+# Notes:
+# - ϕ_trial(y) is enforced to be zero at the walls, but removing only slows convergence, and does not prevent it, so 
+#   this can be safely removed for problems with non-zero values at the walls.
+# - The current PINN parameters seem to produce the best results for different scenarios. 
+# References:
+# - pytorch.org has been the primary reference.
+# - Fourier features from Tancik et al.
+# - Learned Loss Weights from McClenny & Braga-Neto. 
 # -----------------------------------------------------------------------------
 
 # Controls & Hyperparameters --------------------------------------------------
