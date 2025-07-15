@@ -6,7 +6,7 @@ This repository contains PyTorch implementations of physics-informed neural netw
 
 See the image below for the results for a channel width is 25 micrometers, beta (lift force parameter) is 1.1, and bulk concentration is 0.2. Notice the zero values for the particle-volume-fraction near the walls. The model learned this entirely by enforcing the governing equations and boundary conditions.
 ![PINN Solution](assets/Channel_width_25um_beta_1_1_phi_0_2.png)
-See the image below for the results for a channel width is 50 micrometers, beta (lift force parameter) is 1.2, and bulk concentration is 0.1. Notice the large zero regions near the walls, which are correctly predicted by the model. 
+See the image below for the results for a channel width is 50 micrometers, beta (lift force parameter) is 1.2, and bulk concentration is 0.1. All other parameters are the same as for the previous image. Notice the large zero regions near the walls, which are correctly predicted by the model.  
 ![PINN Solution](assets/Channel_width_50um_beta_1_2_phi_0_1.png)
 The following three images are of models which do not include a lift force for modeling blood flow
 
