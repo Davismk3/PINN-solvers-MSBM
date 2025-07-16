@@ -94,7 +94,7 @@ y_data = torch.tensor(2.0 * (df['y'].values / H) - 1.0, dtype=torch.float32, dev
 Ux_data = torch.tensor(df['U_0'].values / Ux_max, dtype=torch.float32, device=device).unsqueeze(1)
 ϕ_data = torch.tensor(df['c'].values, dtype=torch.float32, device=device).unsqueeze(1) if 'c' in df.columns else None
 
-# Collocation points 
+# Collocation points and trial functions 
 y_uniform = torch.linspace(-1.0, 1.0, N_PTS, device=device).unsqueeze(1).requires_grad_(True)  # For mass conservation
 Ux_trial = lambda y: PINN_Ux(torch.cat([y], dim=1))[:,0:1] * (1 + y) * (1 - y)  # torch.Size([y, 1]) | normalized 
 ϕ_trial = lambda y: ϕ_max * torch.sigmoid(PINN_ϕ(y)[:,0:1]) * (1 + y) * (1 - y)  # torch.Size([y, 1])
