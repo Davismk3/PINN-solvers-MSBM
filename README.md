@@ -10,12 +10,15 @@ For each script, ensure that a saved model for Ux_trial exists. To create one, r
 
 **pinn_msbm_lift_force_7** is a modified suspension balance model (MSBM), and must use data from the MSBM directory within the data directory. This script can produce nice results for any MSBM data file with varying physical parameters.
 
-## Results
+## Modified Suspension Balance Model Results
 
 See the image below for the results for a channel width is 25 micrometers, beta (lift force parameter) is 1.1, and bulk concentration is 0.2. Notice the zero values for the particle-volume-fraction near the walls. The model learned this entirely by enforcing the governing equations and boundary conditions.
 ![PINN Solution](assets/Channel_width_25um_beta_1_1_phi_0_2.png)
 See the image below for the results for a channel width is 50 micrometers, beta (lift force parameter) is 1.2, and bulk concentration is 0.1. All other parameters are the same as for the previous image. Notice the large zero regions near the walls, which are correctly predicted by the model.  
 ![PINN Solution](assets/Channel_width_50um_beta_1_2_phi_0_1.png)
+
+## (Ordinary) Suspension Balance Model Results
+
 The following three images are of models which do not include a lift force for modeling blood flow
 
 <img src="assets/bulk_03.png" alt="PINN Solution 1" width="29.8%"> <img src="assets/bulk_04.png" alt="PINN Solution 2" width="30%"> <img src="assets/bulk_05.png" alt="PINN Solution 3" width="30%">
