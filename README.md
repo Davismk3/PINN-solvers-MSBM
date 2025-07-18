@@ -1,6 +1,14 @@
 # Predicting shear-induced particle migration in channel flow with Physics-Informed Neural Networks
 
-This repository contains PyTorch implementations of physics-informed neural networks (PINNs), which learn the known velocity profile of fluid through a small channel, and use this along with enforced physical laws to approximate the unknown particle-volume-fraction profile of particle suspensions. Later models, such as pinn_sbm_lift_force_7.py, include a lift force term to describe the deformable body behavior of red blood cells, resulting in greater concentrations towards the center flow, and values of zero for the concentration near the walls. 
+This repository contains PyTorch implementations of physics-informed neural networks (PINNs), which learn the known velocity profile of fluid through a small channel, and use this along with enforced physical laws to approximate the unknown particle-volume-fraction profile of particle suspensions. Later models, such as pinn_msbm_lift_force_7.py, include a lift force term to describe the deformable body behavior of red blood cells, resulting in greater concentrations towards the center flow, and values of zero for the concentration near the walls. 
+
+## Instructions
+
+For each script, ensure that a saved model for Ux_trial exists. To create one, run one with **pinn_sbm_Ux.py** and ensure that all the neural network parameters match with subsequent models that use it. 
+
+**pinn_sbm_case_1.py**, **pinn_sbm_case_1_bulk_0_4.py**, and **pinn_sbm_case_1_bulk_0_4.py** each are suspension balance models (SBMs), and must use data from the SBM directory within the data directory
+
+**pinn_msbm_lift_force_7** is a modified suspension balance model (MSBM), and must use data from the MSBM directory within the data directory.
 
 ## Results
 
