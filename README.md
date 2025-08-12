@@ -26,7 +26,8 @@ Differences across scripts are primarily to do with how loss terms are weighted/
 	•	Coordinates: y ∈ [−1, 1] (normalized).
 	•	Velocity: Ux ∈ [0, 1] (normalized).
 	•	Volume fraction: ϕ is not normalized; the ϕ trial function enforces ϕ ∈ [0, ϕ_max] (ϕ_max = max packing).
-	•	ϕ data (if present) are used only for visualization/validation, not for training.
+	•	ϕ data (if present) are used only for visualization/validation, not for training, except for the average value of ϕ over y,
+ 		which is treated as a known value.
 
 ## Shared network architecture: 
 
@@ -45,10 +46,10 @@ All use Fourier features → 4×(Linear+Tanh) → Linear (64 neurons).
 
 ## Physics (loss terms for ϕ) — MSE over collocation points:
 	1.	∇·J = 0 (migration flux divergence)
-	2.	∂Σ_xy/∂y (stress gradient, xy)
-	3.	∂Σ_yy/∂y (stress gradient, yy)
+	2.	∂Σ_xy/∂y = 0 (stress gradient, xy)
+	3.	∂Σ_yy/∂y = 0 (stress gradient, yy)
 	4.	Symmetry about channel centerline
-	5.	Mass conservation
+	5.	Mass conservation (average value of ϕ over y)
 
 If training ϕ and Ux, Ux data are also included in the loss; if training Ux alone, the Ux data loss is the objective.
 
@@ -80,3 +81,5 @@ Dbouk, Talib, Elisabeth Lemaire, Laurent Lobry, and Fady Moukalled. “Shear-ind
 McClenny, Levi D., and Ulisses M. Braga-Neto. “Self-adaptive physics-informed neural networks.” Journal of Computational Physics 474 (2023): 111722. DOI: 10.1016/j.jcp.2022.111722
 
 Tancik, Matthew, et al. “Fourier features let networks learn high frequency functions in low dimensional domains.” arXiv:2006.10739 (2020).
+
+Bilionis, Ilias¹; Hans, Atharva². A Hands‑on Introduction to Physics‑Informed Neural Networks. ¹ Mechanical Engineering, Purdue University, West Lafayette, IN; ² Design Engineering Lab, Purdue University, West Lafayette, IN.
