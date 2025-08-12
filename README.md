@@ -10,11 +10,13 @@ Using a self adaptive PINN (SA-PINN) for synthetic data:
 
 ## Scripts
 	•	PINN_Ux_synthetic.py — fits Ux from synthetic data.
+ 	•	PINN_Ux_experimental.py — fits Ux from experimental data.
+  
 	•	PINN_phi_synthetic.py — predicts ϕ given a pre-saved Ux (no adaptive weights).
 	•	SA-PINN_phi_synthetic.py — predicts ϕ given a pre-saved Ux (self-adaptive weights).
-	•	PINN_Ux_experimental.py — fits Ux from experimental data.
+ 
 	•	SA-PINN_phi_experimental.py — predicts ϕ from pre-saved Ux (self-adaptive weights).
-	•	SA-PINN_phi_&_Ux_coupled_experimental.py — loads a pre-saved Ux and then jointly fine-tunes Ux while training ϕ (coupled).
+	•	SA-PINN_phi_&_Ux_coupled_experimental.py — jointly fine-tunes Ux while training ϕ (coupled) after loading a pre-saved Ux; does not converge (kept for completeness).
 	•	SA-PINN_phi_&_Ux_single_experimental.py — single network to learn both Ux and ϕ simultaneously; does not converge (kept for completeness).
 
 Differences across scripts are primarily to do with how loss terms are weighted/normalized (none vs. self-adaptive), whether data used are synthetic or experimental, and the order of training for Ux and ϕ (separate, simultaneous, or coupled). Self-adaptive weighting follows McClenny & Braga-Neto (PINN parameters via gradient descent, weights via gradient ascent) with one trainable weight per loss term per collocation point.
@@ -50,20 +52,26 @@ All use Fourier features → 4×(Linear+Tanh) → Linear (64 neurons).
 
 If training ϕ and Ux, Ux data are also included in the loss; if training Ux alone, the Ux data loss is the objective.
 
-## How to Run (typical workflow)
+## How to Run
+
 	1.	Train a Ux model (synthetic or experimental):
-    - python models_synthetic_data/PINN_Ux_synthetic.py
-    - python models_experimental_data/PINN_Ux_experimental.py
+    - models_synthetic_data/PINN_Ux_synthetic.py
+    - models_experimental_data/PINN_Ux_experimental.py
 
 	2.	Predict ϕ using your preferred script (no-adaptive or self-adaptive), which loads the saved Ux model:
-    - python models_synthetic_data/PINN_phi_synthetic.py
-    - python models_synthetic_data/SA-PINN_phi_synthetic.py
-    - python models_experimental_data/SA-PINN_phi_experimental.py
-    - python models_experimental_data/SA-PINN_phi_&_Ux_coupled_experimental.py
+    - models_synthetic_data/PINN_phi_synthetic.py
+    - models_synthetic_data/SA-PINN_phi_synthetic.py
+    - models_experimental_data/SA-PINN_phi_experimental.py
+    - models_experimental_data/SA-PINN_phi_&_Ux_coupled_experimental.py
+
+	or 
+
+ 	1. Ux and ϕ are trained simultaneously within the same script for the following script, which uses a single neural network for each output:
+    - models_experimental_data/SA-PINN_phi_&_Ux_single_experimental.py
 
 ## Weighting & Normalization Notes
 
-No adaptive weights alongside normalizing certain loss terms (see PINN_phi_synthetic.py) seems to give the sharpest final fit when certain terms, but this is negligible when using experimental data because of the low Fourier scale values that are required. Also, the scripts that do use the adaptive weights converge slightly faster. 
+No adaptive weights alongside normalizing certain loss terms (see PINN_phi_synthetic.py) seems to give the sharpest final fit when certain terms, but this may be negligible when using experimental data because of the low Fourier scale values that are required. Also, the scripts that do use the adaptive weights converge slightly faster, but this may also be negligible when using experimental data for the same reason.
 
 ## References
 
