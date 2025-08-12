@@ -1,5 +1,13 @@
 # Predicting shear-induced particle migration in channel flow with Physics-Informed Neural Networks
 
+## Some Results
+
+Using a standard PINN for synthetic data:
+![PINN](assets/PINN_phi_synthetic.png)
+
+Using a self adaptive PINN (SA-PINN) for synthetic data:
+![SAPINN](assets/SA-PINN_phi_synthetic.png)
+
 ## Scripts
 	•	PINN_Ux_synthetic.py — fits Ux from synthetic data.
 	•	PINN_phi_synthetic.py — predicts ϕ given a pre-saved Ux (no adaptive weights).
