@@ -2,10 +2,10 @@
 
 ## Some Results
 
-Using a standard PINN for synthetic data:
+Using a standard PINN for the inverse problem (known velocity, unknown phi) with synthetic data:
 ![PINN](assets/PINN_phi_synthetic.png)
 
-Using a self adaptive PINN (SA-PINN) for synthetic data:
+Using a self adaptive PINN (SA-PINN) for the inverse problem (known velocity, unknown phi) with synthetic data:
 ![SAPINN](assets/SA-PINN_phi_synthetic.png)
 
 ## Scripts
