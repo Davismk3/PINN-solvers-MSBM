@@ -28,7 +28,7 @@ The scripts are formatted similarly, where any differences have to do with the p
 
 ## Methodology
 
-See documentation.pdf for a thorough review of the methodology in regards to PINN architecture and loss handling.
+See [documentation.pdf](documentation.pdf) for a thorough review of the methodology in regards to PINN architecture and loss handling.
 
 ## How to Run
 
