@@ -2,7 +2,7 @@
 
 ## Some Results
 
-Particle volume fraction prediction (red) compared to OpenFOAM data (black dots) via a SA-PINN with self-adaptive weights, a Gauss expansion layer, and the finite difference method used for calculating derivatives within the PDE loss:
+Particle volume fraction prediction (red) compared to OpenFOAM data (black dots) for the inverse problem with known velocity data via a SA-PINN with self-adaptive weights, a Gauss expansion layer, and the finite difference method used for calculating derivatives within the PDE loss:
 ![SAPINN](assets/gauss_FDM_phi.png)
 
 ## Scripts
