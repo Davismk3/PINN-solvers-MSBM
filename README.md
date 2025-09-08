@@ -2,77 +2,42 @@
 
 ## Some Results
 
-Using a standard PINN for the inverse problem (known velocity, unknown phi) with synthetic data:
-![PINN](assets/PINN_phi_synthetic.png)
-
-Using a self adaptive PINN (SA-PINN) for the inverse problem (known velocity, unknown phi) with synthetic data:
-![SAPINN](assets/SA-PINN_phi_synthetic.png)
+Particle volume fraction prediction (red) compared to OpenFOAM data (black dots) via a SA-PINN with self-adaptive weights, a Gauss expansion layer, and the finite difference method used for calculating derivatives within the PDE loss:
+![SAPINN](assets/gauss_FDM_phi.png)
 
 ## Scripts
-	•	PINN_Ux_synthetic.py — fits Ux from synthetic data.
- 	•	PINN_Ux_experimental.py — fits Ux from experimental data.
+	•	forward_FDM_Gauss_SA-PINN_phi_and_Ux.py - solves the forward problem for phi and Ux using a Gauss expansion layer and the FDM for calculating derivatives in the PDE loss
+ 	•	forward_Fourier_SA-PINN_phi_and_Ux.py - solves the forward problem for phi and Ux using a Fourier expansion layer
+  	•	forward_Gauss_SA-PINN_phi_and_Ux.py - solves the forward problem for phi and Ux using a Gauss expansion layer
   
-	•	PINN_phi_synthetic.py — predicts ϕ given a pre-saved Ux (no adaptive weights).
-	•	SA-PINN_phi_synthetic.py — predicts ϕ given a pre-saved Ux (self-adaptive weights).
+	•	inverse_FDM_Gauss_SA-PINN_phi_experimental.py - solves the inverse problem for phi for experimental data using a Gauss expansion layer and the FDM for calculating derivatives in the PDE loss
+	•	inverse_Fourier_SA-PINN_phi_experimental.py - solves the inverse problem for phi for experimental data using a Fourier expansion layer
+ 	•	inverse_Gauss_SA-PINN_phi_experimental.py - solves the inverse problem for phi for experimental data using a Gauss expansion layer
+  	•	inverse_PINN_Ux_experimental.py - solves the inverse problem for Ux for experimental data
  
-	•	SA-PINN_phi_experimental.py — predicts ϕ from pre-saved Ux (self-adaptive weights).
-	•	SA-PINN_phi_&_Ux_coupled_experimental.py — jointly fine-tunes Ux while training ϕ (coupled) after loading a pre-saved Ux; does not converge (kept for completeness).
-	•	SA-PINN_phi_&_Ux_single_experimental.py — single network to learn both Ux and ϕ simultaneously; does not converge (kept for completeness).
+	•	inverse_FDM_Gauss_SA-PINN_phi_and_beta_synthetic.py - solves the inverse problem for phi and beta for synthetic data using a Gauss expansion layer and the FDM for calculating derivatives in the PDE loss
+ 	•	inverse_FDM_Gauss_SA-PINN_phi_synthetic.py - solves the inverse problem for phi for synthetic data using a Gauss expansion layer and the FDM for calculating derivatives in the PDE loss
+  	•	inverse_Fourier_SA-PINN_phi_and_beta_synthetic.py - solves the inverse problem for phi and beta for synthetic data using a Fourier expansion layer
+   	•	inverse_Fourier_SA-PINN_phi_synthetic.py - solves the inverse problem for phi for synthetic data using a Fourier expansion layer
+	•	inverse_Gauss_SA-PINN_phi_and_beta_synthetic.py - solves the inverse problem for phi and beta for synthetic data using a Gauss expansion layer
+  	•	inverse_Gauss_SA-PINN_phi_synthetic.py - solves the inverse problem for phi for synthetic data using a Gauss expansion layer
+   	•	inverse_PINN_Ux_synthetic.py - solves the inverse problem for Ux for synthetic data
 
-Differences across scripts are primarily to do with how loss terms are weighted/normalized (none vs. self-adaptive), whether data used are synthetic or experimental, and the order of training for Ux and ϕ (separate, simultaneous, or coupled). Self-adaptive weighting follows McClenny & Braga-Neto (PINN parameters via gradient descent, weights via gradient ascent) with one trainable weight per loss term per collocation point.
 
-## General Overview
-	•	Input files are .csv. Examples are provided in each folder.
-	•	Coordinates: y ∈ [−1, 1] (normalized).
-	•	Velocity: Ux ∈ [0, 1] (normalized).
-	•	Volume fraction: ϕ is not normalized; the ϕ trial function enforces ϕ ∈ [0, ϕ_max] (ϕ_max = max packing).
-	•	ϕ data (if present) are used only for visualization/validation, not for training, except for the average value of ϕ over y,
- 		which is treated as a known value.
+The scripts are formatted similarly, where any differences have to do with the problem itself and are mentioned above. 
 
-## Shared network architecture: 
+## Methodology
 
-All use Fourier features → 4×(Linear+Tanh) → Linear (64 neurons).
-
-	•	Fourier scale varies by script (experimental data generally prefers smaller values; e.g., Ux ≈ 0.02 and ϕ ≈ 1.0 work well).
-	•	Optimizer: Adam; optional LBFGS fine-tuning.
-	•	Learning rates: 1e-3 for PINN params; 1e-3 (sometimes 1e-1) for adaptive weights.
-	•	Random seed set for reproducibility.
-	•	LR scheduler included; helps when losses plateau.
-	•	A small LossHistory helper stores losses for plotting.
-
-## Trial functions
-	•	Ux trial: not normalized; includes factors (1−y)(1+y) to enforce wall Ux = 0.
-	•	ϕ trial: mapped to [0, ϕ_max].
-
-## Physics (loss terms for ϕ) — MSE over collocation points:
-	1.	∇·J = 0 (migration flux divergence)
-	2.	∂Σ_xy/∂y = 0 (stress gradient, xy)
-	3.	∂Σ_yy/∂y = 0 (stress gradient, yy)
-	4.	Symmetry about channel centerline
-	5.	Mass conservation (average value of ϕ over y)
-
-If training ϕ and Ux, Ux data are also included in the loss; if training Ux alone, the Ux data loss is the objective.
+See documentation.pdf for a thorough review of the methodology in regards to PINN architecture and loss handling.
 
 ## How to Run
 
-	1.	Train a Ux model (synthetic or experimental):
-    - models_synthetic_data/PINN_Ux_synthetic.py
-    - models_experimental_data/PINN_Ux_experimental.py
-
-	2.	Predict ϕ using your preferred script (no-adaptive or self-adaptive), which loads the saved Ux model:
-    - models_synthetic_data/PINN_phi_synthetic.py
-    - models_synthetic_data/SA-PINN_phi_synthetic.py
-    - models_experimental_data/SA-PINN_phi_experimental.py
-    - models_experimental_data/SA-PINN_phi_&_Ux_coupled_experimental.py
+	1.	Train a Ux model (synthetic or experimental)
+	2.	Predict ϕ using your preferred script (Gauss expansion, Fourier expansion, etc.)
 
 	or 
 
- 	1. Ux and ϕ are trained simultaneously within the same script for the following script, which uses a single neural network for each output:
-    - models_experimental_data/SA-PINN_phi_&_Ux_single_experimental.py
-
-## Weighting & Normalization Notes
-
-No adaptive weights alongside normalizing certain loss terms (see PINN_phi_synthetic.py) seems to give the sharpest final fit when certain terms, but this may be negligible when using experimental data because of the low Fourier scale values that are required. Also, the scripts that do use the adaptive weights converge slightly faster, but this may also be negligible when using experimental data for the same reason.
+ 	1. Ux and phi are trained simultaneously and within the same script for the forward problems
 
 ## References
 
