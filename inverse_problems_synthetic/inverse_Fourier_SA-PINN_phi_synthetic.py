@@ -403,8 +403,11 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
-    print(dpstar_dxstar, dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2))
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 50 == 0:
         visualize(epoch)
 
@@ -422,7 +425,12 @@ for epoch in range(EPOCHS_LBFGS):
     loss_history.append(ℒ_un, ℒ_individuals)
     ϕ_PINN_scheduler_LBFGS.step(ℒ_un.item()) if use_scheduler else None
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 10 == 0:
         visualize(epoch)
 

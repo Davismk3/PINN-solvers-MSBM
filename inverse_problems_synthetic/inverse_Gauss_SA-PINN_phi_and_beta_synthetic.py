@@ -42,11 +42,11 @@ Ux_NEURONS = 64
 Ux_LAYERS = 3
 ϕ_LAYERS = 3
 ϕ_GAUSS_SCALE = 20
-EPOCHS_ADAM = 100000
+EPOCHS_ADAM = 1000
 EPOCHS_LBFGS = 200
 ϕ_LEARNING_RATE = 1e-3
 λ_LEARNING_RATE = 1e-1  # ideally no larger than the smallest λ_..._INIT value 
-β_LEARNING_RATE = 1e-2
+β_LEARNING_RATE = 1e-3
 COLLOCATION_PTS = 500  # Collocation points
 
 # Scheduler parameters
@@ -106,16 +106,17 @@ class LossHistory:
         self.individuals.append([ℒ_individual.item() for ℒ_individual in ℒ_individuals])
 
 # PINN ------------------------------------------------------------------------
-# Modified Gaussian Expansion 
+# Fourier features from Tancik et al. 
 class ModifiedGaussianExpansion(nn.Module):
     def __init__(self, neurons, scale):
         super().__init__()
         self.alpha = nn.Parameter(torch.randn(1, neurons) * scale)
         self.beta = nn.Parameter(torch.randn(1, neurons) * scale)
         self.gamma = nn.Parameter(torch.randn(1, neurons) * scale)
+        self.kappa = nn.Parameter(torch.randn(1, neurons))
 
     def forward(self, x):
-        gauss_function = torch.abs(self.alpha) * torch.exp(-torch.abs(self.beta) * torch.abs(x)**(torch.abs(self.gamma) + 1))
+        gauss_function = torch.abs(self.alpha) * torch.exp(-torch.abs(self.beta) * torch.abs((torch.abs(self.kappa) + 0.1) * x)**(torch.abs(self.gamma) + 1))
         return gauss_function
 
 # 'Jagtap' activation function from Jagtap et al. improves convergence by an insignificant amount, so this isn't necessary
@@ -139,7 +140,7 @@ layers.append(nn.Linear(Ux_NEURONS, 1))
 Ux_PINN = nn.Sequential(*layers).to(device)
 
 # Compile ϕ_PINN layers 
-layers = [ModifiedGaussianExpansion(neurons=ϕ_NEURONS, scale=ϕ_GAUSS_SCALE), nn.Linear(ϕ_NEURONS, ϕ_NEURONS), JagtapActivation(neurons=ϕ_NEURONS)]
+layers = [ModifiedGaussianExpansion(neurons=ϕ_NEURONS, scale=ϕ_GAUSS_SCALE), nn.Linear(1 * ϕ_NEURONS, ϕ_NEURONS), JagtapActivation(neurons=ϕ_NEURONS)]
 for layer in range(ϕ_LAYERS): layers.extend([nn.Linear(ϕ_NEURONS, ϕ_NEURONS), JagtapActivation(neurons=ϕ_NEURONS)])
 layers.append(nn.Linear(ϕ_NEURONS, 1))
 
@@ -416,7 +417,11 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item():.2f} | Individual Losses: {[f'{l.item():.2e}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()[0]:.2e} | λ Lr: {λ_scheduler.get_last_lr()[0]:.2e} | β: {β.item():.3f}")
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()} | β: {β.item():.3f}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | β: {β.item():.3f}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 50 == 0:
         visualize(epoch)
 
@@ -435,7 +440,12 @@ for epoch in range(EPOCHS_LBFGS):
     ϕ_PINN_scheduler_LBFGS.step(ℒ_un.item()) if use_scheduler else None
     β_scheduler.step(ℒ_un.item()) if use_scheduler else None
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()} | β: {β.item():.3f}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | β: {β.item():.3f}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 10 == 0:
         visualize(epoch)
 

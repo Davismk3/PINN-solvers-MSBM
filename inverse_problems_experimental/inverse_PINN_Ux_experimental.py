@@ -153,7 +153,10 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ.item()} | Ux Lr: {Ux_PINN_scheduler_Adam.get_last_lr()}")
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ.item()} | Ux Lr: {Ux_PINN_scheduler_Adam.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ.item()}")
     if epoch % 50 == 0:
         visualize(epoch)
 
@@ -171,7 +174,11 @@ for epoch in range(EPOCHS_LBFGS):
     loss_history.append(ℒ)
     Ux_PINN_scheduler_LBFGS.step(ℒ.item()) if use_scheduler else None
 
-    print(f"Epoch: {epoch} | Loss: {ℒ.item()} | Ux Lr: {Ux_PINN_scheduler_LBFGS.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ.item()} | Ux Lr: {Ux_PINN_scheduler_LBFGS.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ.item()}")
     if epoch % 10 == 0:
         visualize(epoch)
 

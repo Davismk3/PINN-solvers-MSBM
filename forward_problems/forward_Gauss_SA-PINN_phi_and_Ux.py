@@ -404,7 +404,10 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
     if epoch % 100 == 0:
         visualize(epoch)
 
@@ -421,7 +424,11 @@ for epoch in range(EPOCHS_LBFGS):
     ℒ, ℒ_un, ℒ_individuals = total_loss()
     loss_history.append(ℒ_un, ℒ_individuals)
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
     if epoch % 10 == 0:
         visualize(epoch)
 

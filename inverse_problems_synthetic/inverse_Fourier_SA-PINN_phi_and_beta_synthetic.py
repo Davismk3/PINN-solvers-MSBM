@@ -18,7 +18,7 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 # Model controls
-data_file_1 = True  # which example data file do you want to try? one or two? if one, one = True. if two, one = False
+data_file_1 = False  # which example data file do you want to try? one or two? if one, one = True. if two, one = False
 save_images = False  # save images during training for making an animation later
 use_scheduler = True  # if True, the learning rates will decrease over time as the loss plateaus
 
@@ -42,11 +42,11 @@ Ux_NEURONS = 64
 Ux_LAYERS = 3
 ϕ_LAYERS = 3
 ϕ_FOURIER_SCALE = 5.0
-EPOCHS_ADAM = 100000
+EPOCHS_ADAM = 1000
 EPOCHS_LBFGS = 200
 ϕ_LEARNING_RATE = 1e-3
 λ_LEARNING_RATE = 1e-1  # ideally no larger than the smallest λ_..._INIT value 
-β_LEARNING_RATE = 1e-1
+β_LEARNING_RATE = 1e-3
 COLLOCATION_PTS = 500  # Collocation points
 
 # Scheduler parameters
@@ -414,7 +414,11 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item():.2f} | Individual Losses: {[f'{l.item():.2e}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()[0]:.2e} | λ Lr: {λ_scheduler.get_last_lr()[0]:.2e} | β: {β.item():.3f}")
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()} | β: {β.item():.3f}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | β: {β.item():.3f}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 50 == 0:
         visualize(epoch)
 
@@ -433,7 +437,12 @@ for epoch in range(EPOCHS_LBFGS):
     ϕ_PINN_scheduler_LBFGS.step(ℒ_un.item()) if use_scheduler else None
     β_scheduler.step(ℒ_un.item()) if use_scheduler else None
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()} | β: {β.item():.3f}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | β: {β.item():.3f}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 10 == 0:
         visualize(epoch)
 

@@ -105,16 +105,17 @@ class LossHistory:
         self.individuals.append([ℒ_individual.item() for ℒ_individual in ℒ_individuals])
 
 # PINN ------------------------------------------------------------------------
-# Modified Gaussian Expansion 
+# Fourier features from Tancik et al. 
 class ModifiedGaussianExpansion(nn.Module):
-    def __init__(self, in_features, mapping_size, scale):
+    def __init__(self, neurons, scale):
         super().__init__()
-        self.a = nn.Parameter(torch.randn(in_features, mapping_size) * scale)
-        self.b = nn.Parameter(torch.randn(in_features, mapping_size) * scale)
-        self.c = nn.Parameter(torch.randn(in_features, mapping_size) * scale)
+        self.alpha = nn.Parameter(torch.randn(1, neurons) * scale)
+        self.beta = nn.Parameter(torch.randn(1, neurons) * scale)
+        self.gamma = nn.Parameter(torch.randn(1, neurons) * scale)
+        self.kappa = nn.Parameter(torch.randn(1, neurons))
 
     def forward(self, x):
-        gauss_function = torch.abs(self.a) * torch.exp(-torch.abs(self.b) * torch.abs(x)**(torch.abs(self.c) + 1))
+        gauss_function = torch.abs(self.alpha) * torch.exp(-torch.abs(self.beta) * torch.abs((torch.abs(self.kappa) + 0.1) * x)**(torch.abs(self.gamma) + 1))
         return gauss_function
 
 # 'Jagtap' activation function from Jagtap et al. improves convergence by an insignificant amount, so this isn't necessary
@@ -138,7 +139,7 @@ layers.append(nn.Linear(Ux_NEURONS, 1))
 Ux_PINN = nn.Sequential(*layers).to(device)
 
 # Compile ϕ_PINN layers 
-layers = [ModifiedGaussianExpansion(in_features=1, mapping_size=ϕ_NEURONS, scale=ϕ_GAUSS_SCALE), nn.Linear(1 * ϕ_NEURONS, ϕ_NEURONS), JagtapActivation(neurons=ϕ_NEURONS)]
+layers = [ModifiedGaussianExpansion(neurons=ϕ_NEURONS, scale=ϕ_GAUSS_SCALE), nn.Linear(1 * ϕ_NEURONS, ϕ_NEURONS), JagtapActivation(neurons=ϕ_NEURONS)]
 for layer in range(ϕ_LAYERS): layers.extend([nn.Linear(ϕ_NEURONS, ϕ_NEURONS), JagtapActivation(neurons=ϕ_NEURONS)])
 layers.append(nn.Linear(ϕ_NEURONS, 1))
 
@@ -411,7 +412,7 @@ for epoch in range(EPOCHS_ADAM):
     λ_optimizer.zero_grad()
 
     # Forward & Backward passes
-    ℒ, ℒ_un, ℒ_individuals, ℒ_r = total_loss()  # forward pass to compute loss
+    ℒ, ℒ_un, ℒ_individuals = total_loss()  # forward pass to compute loss
     ℒ.backward()  # backward pass to compute gradients
 
     # Gradient descent & scheduler update
@@ -431,26 +432,34 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
-    print(dpstar_dxstar, dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2))
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 50 == 0:
         visualize(epoch)
 
 # LBFGS closure function
 def closure():
     ϕ_PINN_optimizer_LBFGS.zero_grad()
-    ℒ, ℒ_un, ℒ_individuals, ℒ_r = total_loss()
+    ℒ, ℒ_un, ℒ_individuals = total_loss()
     ℒ.backward()
     return ℒ
 
 # LBFGS training loop 
 for epoch in range(EPOCHS_LBFGS):
     ϕ_PINN_optimizer_LBFGS.step(closure)
-    ℒ, ℒ_un, ℒ_individuals, ℒ_r = total_loss()
+    ℒ, ℒ_un, ℒ_individuals = total_loss()
     loss_history.append(ℒ_un, ℒ_individuals)
     ϕ_PINN_scheduler_LBFGS.step(ℒ_un.item()) if use_scheduler else None
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
+    print("Normalized and non-normalized pressure gradient: ", dpstar_dxstar.item(), (dpstar_dxstar * (4 * η0 * Ux_max) / (H ** 2)).item())
     if epoch % 10 == 0:
         visualize(epoch)
 

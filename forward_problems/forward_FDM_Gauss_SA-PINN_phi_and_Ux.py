@@ -36,15 +36,15 @@ data_file_name = "synthetic_data_example_1.csv" if data_file_1 else "synthetic_d
 df = pd.read_csv(data_path / data_file_name)
 
 # PINN parameters 
-Ux_NEURONS = 64 * 4
-ϕ_NEURONS = 64 * 4
-Ux_LAYERS = 1
+Ux_NEURONS = 32
+ϕ_NEURONS = 64
+Ux_LAYERS = 3
 ϕ_LAYERS = 3
 ϕ_GAUSS_SCALE = 20
 EPOCHS_ADAM = 10000
 EPOCHS_LBFGS = 200
-Ux_LEARNING_RATE = 1e-3
-ϕ_LEARNING_RATE = 1e-5
+Ux_LEARNING_RATE = 1e-4
+ϕ_LEARNING_RATE = 1e-4
 λ_LEARNING_RATE = 1e-1  # ideally no larger than the smallest λ_..._INIT value 
 COLLOCATION_PTS = 100  # Collocation points
 
@@ -57,7 +57,7 @@ SCHEDULER_MIN_LR = 1e-6  # Minimum LR to stop reducing below this
 λ_J_INIT = 1
 λ_Σxy_INIT = 1
 λ_Σyy_INIT = 1
-λ_mass_INIT = 1e4
+λ_mass_INIT = 1e5
 λ_symmetry_INIT = 1
 
 # Physical parameters (match OpenFOAM)
@@ -89,7 +89,7 @@ y_uniform = torch.linspace(-1.0, 1.0, COLLOCATION_PTS + 2, device=device).unsque
 
 # Trial functions
 Ux_trial = lambda y: Ux_PINN(torch.cat([y.to(device)], dim=1))[:,0:1] * (1 + y.to(device)) * (1 - y.to(device))  # torch.Size([y, 1]), normalized 
-ϕ_trial = lambda y: ϕ_max * torch.sigmoid(ϕ_PINN(y.to(device))[:,0:1]) * (1 + y.to(device))**2 * (1 - y.to(device))**2  # torch.Size([y, 1]), sigmoid keeps bounded between 0 and ϕ_max
+ϕ_trial = lambda y: ϕ_max * torch.sigmoid(ϕ_PINN(y.to(device))[:,0:1]) * (1 + y.to(device)) * (1 - y.to(device))  # torch.Size([y, 1]), sigmoid keeps bounded between 0 and ϕ_max
 
 # Loss history for plotting
 class LossHistory:
@@ -429,7 +429,10 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
     if epoch % 100 == 0:
         visualize(epoch)
 
@@ -446,7 +449,11 @@ for epoch in range(EPOCHS_LBFGS):
     ℒ, ℒ_un, ℒ_individuals = total_loss()
     loss_history.append(ℒ_un, ℒ_individuals)
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]}")
     if epoch % 10 == 0:
         visualize(epoch)
 

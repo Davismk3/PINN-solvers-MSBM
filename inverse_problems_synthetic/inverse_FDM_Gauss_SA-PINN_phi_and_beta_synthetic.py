@@ -43,11 +43,11 @@ Ux_NEURONS = 64
 Ux_LAYERS = 3
 ϕ_LAYERS = 1
 ϕ_GAUSS_SCALE = 10
-EPOCHS_ADAM = 100000
+EPOCHS_ADAM = 1000
 EPOCHS_LBFGS = 200
 ϕ_LEARNING_RATE = 1e-3
 λ_LEARNING_RATE = 1e-1  # ideally no larger than the smallest λ_..._INIT value 
-β_LEARNING_RATE = 1e-2
+β_LEARNING_RATE = 1e-3
 COLLOCATION_PTS = 500  # Collocation points
 
 # Scheduler parameters
@@ -114,9 +114,10 @@ class ModifiedGaussianExpansion(nn.Module):
         self.alpha = nn.Parameter(torch.randn(1, neurons) * scale)
         self.beta = nn.Parameter(torch.randn(1, neurons) * scale)
         self.gamma = nn.Parameter(torch.randn(1, neurons) * scale)
+        self.kappa = nn.Parameter(torch.randn(1, neurons))
 
     def forward(self, x):
-        gauss_function = torch.abs(self.alpha) * torch.exp(-torch.abs(self.beta) * torch.abs(x)**(torch.abs(self.gamma) + 1))
+        gauss_function = torch.abs(self.alpha) * torch.exp(-torch.abs(self.beta) * torch.abs((torch.abs(self.kappa) + 0.1) * x)**(torch.abs(self.gamma) + 1))
         return gauss_function
     
 # 'Jagtap' activation function from Jagtap et al. improves convergence by an insignificant amount, so this isn't necessary
@@ -417,7 +418,7 @@ for epoch in range(EPOCHS_ADAM):
     β_optimizer.zero_grad()
 
     # Forward & Backward passes
-    ℒ, ℒ_un, ℒ_individuals, ℒ_r = total_loss()  # forward pass to compute loss
+    ℒ, ℒ_un, ℒ_individuals = total_loss()  # forward pass to compute loss
     ℒ.backward()  # backward pass to compute gradients
 
     # Gradient descent & scheduler update
@@ -440,26 +441,33 @@ for epoch in range(EPOCHS_ADAM):
     loss_history.append(ℒ_un, ℒ_individuals)
 
     # Visuals
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item():.2f} | Individual Losses: {[f'{l.item():.2e}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()[0]:.2e} | λ Lr: {λ_scheduler.get_last_lr()[0]:.2e} | β: {β.item():.3f}")
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_Adam.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()} | β: {β.item():.3f}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | β: {β.item():.3f}")
     if epoch % 50 == 0:
         visualize(epoch)
 
 # LBFGS closure function
 def closure():
     ϕ_PINN_optimizer_LBFGS.zero_grad()
-    ℒ, ℒ_un, ℒ_individuals, ℒ_r = total_loss()
+    ℒ, ℒ_un, ℒ_individuals = total_loss()
     ℒ.backward()
     return ℒ
 
 # LBFGS training loop 
 for epoch in range(EPOCHS_LBFGS):
     ϕ_PINN_optimizer_LBFGS.step(closure)
-    ℒ, ℒ_un, ℒ_individuals, ℒ_r = total_loss()
+    ℒ, ℒ_un, ℒ_individuals = total_loss()
     loss_history.append(ℒ_un, ℒ_individuals)
     ϕ_PINN_scheduler_LBFGS.step(ℒ_un.item()) if use_scheduler else None
     β_scheduler.step(ℒ_un.item()) if use_scheduler else None
 
-    print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()}")
+    # Visuals
+    if use_scheduler:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | ϕ Lr: {ϕ_PINN_scheduler_LBFGS.get_last_lr()} | λ Lr: {λ_scheduler.get_last_lr()} | β: {β.item():.3f}")
+    else:
+        print(f"Epoch: {epoch} | Loss: {ℒ_un.item()} | Individual Losses: {[f'{l.item():.5f}' for l in ℒ_individuals]} | β: {β.item():.3f}")
     if epoch % 10 == 0:
         visualize(epoch)
 
